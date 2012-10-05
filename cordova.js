@@ -1,33 +1,49 @@
+var bliss = new (require('bliss'))();
 var http = require('http');
-
 var fs = require('fs');
+var route = require('router')();
 
-http.createServer(function (req, res) {
+/* Confinguration page */
+route.get('/config', function(req, res) {
+    res.writeHead(200);
+    output = bliss.render('config');
+    res.end(output);
+});
 
-  console.log("Recived request for: " + req.url + " and method: "+ req.method);
-  
-  var flag = dispacher(req, res);
-  
-  if (flag)
-  	  return;
-  res.writeHead(404);
-  console.log("\tFile not found !!!");
-  res.end("<h1>File not found !!!</h1>");
-}).listen(1337, '127.0.0.1');
+/* Index page */
+route.get('/', function(req, res) {
+    res.writeHead(200);
+    output = bliss.render('home');
+    res.end(output);
+});
+
+/* generic */
+route.get(function(req, res){
+    // no route was matched
+    if (!loadFile('.' + req.url, res)) {
+    	res.writeHead(404);
+    	res.end("File not found");
+    }
+});
+
+http.createServer(route).listen(1337);
 
 console.log('Server running at http://127.0.0.1:1337/');
 
-function dispacher(req, res) {
-	
-	if (req.method = "POST") {
-		
-	}
-	
-	return loadFile("." + req.url, res);
-}
-
 function configuration(req, res){
-
+	console.log("\tStart configuration");
+	
+	var fullBody = '';
+    req.on('data', function(chunk) {
+      // append the current chunk of data to the fullBody variable
+      fullBody += chunk.toString();
+    });
+    
+    req.on('end', function() {
+    	return loadFile('./config.ok.html', res);
+    });
+	  
+	//res.end("<h1>Wip !!!</h1>");
 }
 
 function loadFile(path, res) {
