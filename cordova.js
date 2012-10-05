@@ -6,14 +6,14 @@ var route = require('router')();
 /* Confinguration page */
 route.get('/config', function(req, res) {
     res.writeHead(200);
-    output = bliss.render('config');
+    output = bliss.render('layout');
     res.end(output);
 });
 
 /* Index page */
 route.get('/', function(req, res) {
     res.writeHead(200);
-    output = bliss.render('home');
+    output = bliss.render('layout');
     res.end(output);
 });
 
