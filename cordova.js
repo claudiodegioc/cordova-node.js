@@ -2,19 +2,25 @@ var bliss = new (require('bliss'))();
 var http = require('http');
 var fs = require('fs');
 var route = require('router')();
+var querystring = require('querystring');
+var path = require('path');
 
-/* Confinguration page */
+appPath = '';
+
+/* Configuration page */
 route.get('/config', function(req, res) {
-    res.writeHead(200);
-    output = bliss.render('layout');
-    res.end(output);
+    content=bliss.render('config');
+    render(res, content);
+});
+
+route.post('/config', function(req, res) {
+    configuration(req, res);
 });
 
 /* Index page */
 route.get('/', function(req, res) {
-    res.writeHead(200);
-    output = bliss.render('layout');
-    res.end(output);
+    content=bliss.render('home', appPath);
+    render(res, content);
 });
 
 /* generic */
@@ -26,13 +32,12 @@ route.get(function(req, res){
     }
 });
 
+laodConfig();
 http.createServer(route).listen(1337);
-
 console.log('Server running at http://127.0.0.1:1337/');
 
+/* Configuration task */ 
 function configuration(req, res){
-	console.log("\tStart configuration");
-	
 	var fullBody = '';
     req.on('data', function(chunk) {
       // append the current chunk of data to the fullBody variable
@@ -40,10 +45,64 @@ function configuration(req, res){
     });
     
     req.on('end', function() {
-    	return loadFile('./config.ok.html', res);
+    	var query = querystring.parse(fullBody);
+    	console.log("\tStart check configuration of " + query.path);
+    	
+    	// validate 
+    	checkApplication(query.path, res);
     });
-	  
-	//res.end("<h1>Wip !!!</h1>");
+
+}
+
+function checkApplication(pathFile, res){
+	path.exists(pathFile + "/index.html", function(exists) {
+			if (exists) {
+				console.log("\tFound index page");
+				renderMessage(res, 'Configuration load success');
+				saveConfig(pathFile);
+				return;
+			}
+			renderErrorMessage(res, 'Configuration error', 'Missing index.html file');
+	});
+}
+
+function saveConfig(pathFile){
+	console.log("\twWrite configuration to file")
+	appPath = pathFile;
+	fs.writeFileSync('config.dat', pathFile);
+}
+
+function laodConfig(){
+	try{
+		console.log('Load config file: config.dat');
+		content = fs.readFileSync('config.dat');
+		appPath = content;
+		console.log('Fond valid applicationa at: ' + content);
+	}
+	catch(err) {
+		console.log("Warning: missing config file");
+	}
+}
+
+/* Render function util */
+function renderErrorMessage(res, title, customMessage){
+	if (res != undefined) {
+		message='<h1>' + title + ' !!!</h1><div class="alert alert-error"><strong>Error!!</strong> ' + customMessage + '</div>';
+		content=bliss.render('message', message);
+		render(res, content);
+	}
+}
+function renderMessage(res, txt){
+	if (res != undefined) {
+		message='<h1>' + txt + '</h1>';
+		content=bliss.render('message', message);
+		render(res, content);
+	}
+}
+function render(res, content){
+	res.writeHead(200);
+    output = bliss.render('layout', content);
+    res.end(output);
 }
 
 function loadFile(path, res) {
@@ -58,7 +117,7 @@ function loadFile(path, res) {
   }
       
   try{
-    console.log("\tLoad file: " + path + " and extention of: " + ext);
+    console.log("Load file: " + path + " and extention of: " + ext);
     content = fs.readFileSync(path);
     if (ext != null) {
     	res.writeHead(200, {'Content-Type': 'text/' + ext});
@@ -69,7 +128,7 @@ function loadFile(path, res) {
     return true;
   }
   catch(err) {
-      console.log("\tLoad file: " + path + " with error: " + err + " !!!");
+      console.log("Load file: " + path + " with error: " + err + " !!!");
   }
   return false;
 }
