@@ -19,16 +19,24 @@ route.post('/config', function(req, res) {
 
 /* Index page */
 route.get('/', function(req, res) {
-    content=bliss.render('home', appPath);
+	appName = path.basename(appPath);
+    content=bliss.render('home', appPath, appName);
     render(res, content);
 });
 
 /* generic */
 route.get(function(req, res){
     // no route was matched
-    if (!loadFile('.' + req.url, res)) {
+    
+    // 1) try lo laod file 
+    var foundIt = loadFile('.' + req.url, res);
+    
+    if (foundIt) return;
+    
+    // 2) try to load from the application
+    if (!loadFile(appPath + req.url, res)) {
     	res.writeHead(404);
-    	res.end("File not found");
+    	renderErrorMessage(res, "404 File not found", "The file " + req.url + " is not present");
     }
 });
 
@@ -100,7 +108,6 @@ function renderMessage(res, txt){
 	}
 }
 function render(res, content){
-	res.writeHead(200);
     output = bliss.render('layout', content);
     res.end(output);
 }
