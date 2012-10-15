@@ -6,6 +6,7 @@ var querystring = require('querystring');
 var path = require('path');
 
 appPath = '';
+devices = {}
 
 /* Configuration page */
 route.get('/config', function(req, res) {
@@ -15,6 +16,47 @@ route.get('/config', function(req, res) {
 
 route.post('/config', function(req, res) {
     configuration(req, res);
+});
+
+route.post('/connect', function(req, res) {
+    connect(req, res);
+});
+
+route.get('/devices', function(req, res) {
+	cnt = 0;
+	for (i in devices) cnt++;
+	content=bliss.render('devices', devices);
+    render(res, content);
+});
+
+route.post('/reload', function(req, res) {
+	console.log("Start reload of devices");
+	res.writeHead(200);
+	res.end();
+	for (i in devices) {
+		console.log("Send reload to " + i);
+		
+		var options = {
+		  host: i,
+		  port: 1337,
+		  path: '/reload',
+		  method: 'GET'
+		};
+
+		var reqHttp = http.request(options, function(res) {
+		  res.setEncoding('utf8');
+		  res.on('data', function (chunk) {
+			console.log('BODY: ' + chunk);
+		  });
+		});
+		
+		reqHttp.on('error', function(e) {
+		  console.log('problem with request: ' + e.message);
+		});
+
+		// write data to request body
+		reqHttp.end();
+	}
 });
 
 /* Index page */
@@ -85,11 +127,18 @@ function laodConfig(){
 		console.log('Load config file: config.dat');
 		content = fs.readFileSync('config.dat');
 		appPath = content;
-		console.log('Fond valid applicationa at: ' + content);
+		console.log('Found a valid application at: ' + content);
 	}
 	catch(err) {
 		console.log("Warning: missing config file");
 	}
+}
+
+/* Connect */
+function connect(req, res){
+	console.log("Recved connection from device: " + req.connection.remoteAddress);
+	devices[req.connection.remoteAddress] = '';
+	res.end("OK");
 }
 
 /* Render function util */
